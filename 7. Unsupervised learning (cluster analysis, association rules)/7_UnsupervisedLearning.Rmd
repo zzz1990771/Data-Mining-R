@@ -15,25 +15,27 @@ editor_options:
 ---
 
 
-# Simple Example beforehand: T-shirts' Size
+# Simple Example beforehand:
 
 - How do the clothing companies decide the size of their T-shirt? 
 
-- What size should a t-shirt be? 
+At the very begining, no one knows which size it should be to accomedate the market. However, with some information about customers' height, girth, hip, weight and so on, costumer can be grouped into some sub-groups. Based these sub-groups, shirts can be designed based on the average of each group and assign XS, S, L labels to those groups. In another words, this problem is equivalent to find some clusters based on provided information so that the variation within clusters is small, and between clusters variation is large. 
 
-- Everyone’s real t-shirt size is diﬀerent, but how can they figure out the XS, S, M, L and XL labels?
+- Or, clustering is a great way to group and target your customer from the general public:
 
-At the first, they don't have these lables, they only have some information about customers. Let's think about how tailer make your customer-tailored T-shirt. They may measure your neck width(collar), arm length, chest width, waistline and so on. But they don't have any lable to make as fewer as possible sizes so that they can save cost. Let's say they only want to have five moduel. So the problem is how to find these five sizes so that most of the customers can buy a comfortable one, and meanwhile, when they have the right size, the T-shirt is not too large or to small. In statistics, this problem is equivalent to find five clusters based on provided information so that the variation within clusters is small, and between clusters variation is large. 
-
-Add more visual graphs to illustrate the clustering. 
+![example2](https://qph.fs.quoracdn.net/main-qimg-5d2236c938bfe7ad21ac395e29fb2c69)
 
 [go to top](#header)
+
+However, we don't have these data, so we are going to start with the seeds data.
 
 # Summary of Seeds data
 
 This tutorial illustrates the implentations of clustering and association rule mining in (R).
 
-We use the seeds data set to demonstrate cluster analysis in R. The examined group comprised kernels belonging to three different varieties of wheat: Kama, Rosa and Canadian, 70 elements each. A description of the dataset can be viewed at (https://archive.ics.uci.edu/ml/datasets/seeds)
+The examined group comprised kernels belonging to three different varieties of wheat: Kama, Rosa and Canadian, 70 elements each. A description of the dataset can be viewed at (https://archive.ics.uci.edu/ml/datasets/seeds)
+
+Our goal is to cluster these variables into groups so we can take further study of them.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, error = FALSE)
@@ -48,6 +50,7 @@ colnames(seed) = c("area", "perimeter","campactness", "length", "width", "asymme
 Scale data to have zero mean and unit variance for each column
 ```{r}
 seed <- scale(seed) 
+head(seed)
 ```
 
 [go to top](#header)
@@ -74,7 +77,7 @@ $d_{man}(x,y) = \sum^n_{i=1}|(x_i - y_i)| \tag{2}$
 $d_{cor}(x, y) = 1 - \frac{\sum^n_{i=1}(x_i-\bar x)(y_i - \bar y)}{\sqrt{\sum^n_{i=1}(x_i-\bar x)^2\sum^n_{i=1}(y_i - \bar y)^2}} \tag{3}$ 
 
 
-In order to use k-means method for clustering and plot results, we can use `kmeans` function in R. It will group the data into a specified number of clusters (centers = 5). As mentioned before, the algorithm randomly k objects as the initial cluster centers to start the iteration, the final results may vary based on different initial centers. The `nstart` option of this function can allow the algorithm to attempt multiple initial configurations and reports on the best one. I recommended to set nstart for this function, which could give stable result. 
+In order to use k-means method for clustering and plot results, we can use `kmeans` function in R. It will group the data into a specified number of clusters (centers = 5). As mentioned before, the algorithm randomly select k objects as the initial cluster centers to start the iteration, the final results may vary based on different initial centers. The `nstart` option of this function can allow the algorithm to attempt multiple initial configurations and reports on the best one. I recommended to set nstart for this function, which could give stable result. 
 
 ```{r}
 library(factoextra)
@@ -89,7 +92,6 @@ table(fit$cluster)
 
 ```{r}
 fit
-fviz_cluster(fit, data = seed)
 ```
 
 
@@ -124,14 +126,7 @@ library(gridExtra)
 grid.arrange(p1, p2, p3, p4, nrow = 2)
 ```
 
-```{r, eval=FALSE}
-install.packages("fpc")
-```
 
-```{r, message=FALSE, warning=FALSE}
-library(fpc)
-plotcluster(seed, fit$cluster)
-```
 
 ```{r, eval=FALSE}
 #See exactly which item are in 1st group
@@ -145,7 +140,8 @@ fit$centers
 ```
 
 ## Determine number of clusters
-Here a simple within group sum of squares method is used. 
+
+We can determine the number of clusters by looking at the within group sum of squares as followed:
 
 ```{r}
 # Determine number of clusters
@@ -155,13 +151,26 @@ for (i in 2:12) wss[i] <- sum(kmeans(seed,
 plot(1:12, wss, type="b", xlab="Number of Clusters",ylab="Within groups sum of squares")
 ```
 
-Prediction strength for estimating number of clusters. The prediction strength is defined according to Tibshirani and Walther (2005), who recommend to choose as optimal number of cluster the largest number of clusters that leads to a prediction strength above 0.8 or 0.9.
+Three looks pretty well as increasing anymore does not decrese the within group sum of squares significantly.
+
+We can also use *Prediction strength* for estimating number of clusters. The prediction strength is defined according to Tibshirani and Walther (2005), who recommend to choose as optimal number of cluster the largest number of clusters that leads to a prediction strength above 0.8 or 0.9. We will use fpc packagehere. 
+
+This package also has cluster.stat() function that can calcuate other cluster validity measures such as [Average Silhouette Coefficient](http://en.wikipedia.org/wiki/Silhouette_(clustering)) (between -1 and 1, the higher the better), or [Dunn index](http://en.wikipedia.org/wiki/Dunn_index) (betwen 0 and infinity, the higher the better):
+
+
+```{r, eval=FALSE}
+install.packages("fpc")
+```
+
 
 ```{r}
+library(fpc)
 prediction.strength(seed, Gmin=2, Gmax=15, M=10,cutoff=0.8)
 ```
 
-fpc package has cluster.stat() function that can calcuate other cluster validity measures such as [Average Silhouette Coefficient](http://en.wikipedia.org/wiki/Silhouette_(clustering)) (between -1 and 1, the higher the better), or [Dunn index](http://en.wikipedia.org/wiki/Dunn_index) (betwen 0 and infinity, the higher the better):
+
+
+
 
 ```{r}
 d = dist(seed, method = "euclidean")
@@ -178,7 +187,10 @@ plot(result[,c(1,3)], type="l", ylab = 'dunn index', xlab = 'number of clusters'
 
 ```
 
-The package `NbClust` provides 30 indexes for determining the optimal number of clusters in a data set.
+
+Obviously, different index may suggest different cluster numbers.
+
+If you wish more, the package `NbClust` provides 30 indexes for determining the optimal number of clusters in a data set.
 
 For more sophiscated methods, see for example [blog](http://blog.echen.me/2011/03/19/counting-clusters/), or [course notes](http://www.bx.psu.edu/old/courses/bx-fall04/How_Many_Clusters.pdf).
 
@@ -187,6 +199,8 @@ For more sophiscated methods, see for example [blog](http://blog.echen.me/2011/0
 [go to top](#header)
 
 # Hierarchical clustering
+
+You can also do Hierarchical clustering in R easily:
 
 ```{r}
 #Wards Method or Hierarchical clustering
@@ -381,17 +395,20 @@ plot(basket_rules, method="grouped")
 
 [go to top](#header)
 
-# Case Starter Code
+# Exercise:
 
-<a id="case4"></a>
+### exmaple 1:
 
-For problem 1 Iris data, simply use the Iris dataset in R. When doing cluster analysis for Iris you'll want to ignore the Species variable.
+Iris data, simply use the Iris dataset in R. Please do a clustering analysis with this data and ignores the Species variable.
 
 ```{r, eval=FALSE}
 data(iris)
 ```
 
-For problem 2 Cincinnati Zoo data, use the following code to load the transaction data for association rules mining. *as()* function coerce the dataset into transaction data type for association rules mining.
+
+### exmaple 2:
+
+Cincinnati Zoo data, use the following code to load the transaction data for association rules mining. *as()* function coerce the dataset into transaction data type for association rules mining.
 
 ```{r, eval=FALSE}
 TransFood <- read.csv('https://xiaoruizhu.github.io/Data-Mining-R/data/food_4_association.csv')
@@ -401,6 +418,9 @@ Others <- which(!(as.matrix(TransFood) ==1 | as.matrix(TransFood) ==0), arr.ind=
 TransFood[Others] <- 1
 TransFood <- as(as.matrix(TransFood), "transactions")
 ```
+
+### exmaple 3:
+
 Load the data for clustering:
 ```{r, eval=FALSE}
 Food_by_month <- read.csv('https://xiaoruizhu.github.io/Data-Mining-R/data/qry_Food_by_Month.csv')
